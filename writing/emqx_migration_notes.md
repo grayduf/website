@@ -1,0 +1,69 @@
+- Attempted to install Docker on work laptop
+  - Failed, do not have admin permissions on work laptop
+  - Attempted install via command line, also failed; installed the installer, then had the same problem
+- Switched to personal computer and downloaded Docker Desktop
+- Created folder for project
+  - Two sub folders for each version of EMQX
+    - emqx_v4.2.13
+    - emqx_vlatest (Using emqx-enterprise version)
+- Created docker-compose.yml files in each and populated them with the corresponding version and ports
+  - Started containers and connected via localhost web (<http://localhost:port/>)
+    - Username: admin
+    - Password:
+      - public - v4.2.13
+      - password1 - vlatest
+- Containers are running in parallel and their corresponding dashboards can now both be accessed at the same time
+- Switched to having both containers inside the same .yaml file; only one folder (emqx) now
+- Turned on emqx_auth_username plugin and created two new users to see messages sent and recieved
+  - Username: pearlsnapmid
+  - Password: password
+  - Username: pearlsnapmid1
+  - Password: password
+- Created an acl.conf file to add in the ACL rule:
+  - {allow, {user, "pearlsnapmid"}, pubsub,\["+/pearlsnapmid/#","STATE/#"\]}.
+- Downloaded MQTTX client to test the user and ACL rules
+  - Successfully connected to MQTTX and sent and received messages
+  - ACL rules seemed not to apply, could publish and subscribe to any topic from ‘pearlsnapmid’
+    - Results noted in 1.1-1.8 tests in table
+- Changed typos in ACL for second attempt and changed .yaml back to .yml
+  - Failure; Recorded results in 2.1-2.8
+- Have backtracked to mounting the acl.conf file to /opt/emqx/etc/acl.conf instead of /emqx/etc/acl.conf
+  - Switched the contents of the ACL file to include: {deny, all, publish, \["#"\]}. ; {deny, all, subscribe, \["#"\]}. ; {allow, {user, "gray"}, subscribe, \["testtopic/#"\]}.
+    - Success, have created user “gray” and said user can subscribe to “testtopic/#” but cannot publish
+      - The user can attempt to publish, but when viewing the topic from another user, nothing is published
+- ACL rules function correctly for EMQX v4.2.13, and adding user via plugin emqx_auth_username also works
+  - Results recorded in tests 3.1-3.8
+- For latest version of EMQX (5.10.0), creating new authenticated users can be done via the dashboard
+  - Second option down on the left opens a menu, then I selected Authentications
+  - Then created a new authentication method
+    - Username method with the other defaults
+  - Then created a new user via that method
+- User “gray” can connect properly to the broker via MQTTX
+- To add ACL rules for users inside the dashboard, the enterprise version of EMQX is required, and so is a license for the enterprise version
+- In the authorization section, under the file version, there is an ACL file already
+  - Added the ACL rules at the bottom of the file and commented out the default rules at the very top
+  - Now the rules work correctly and only the “gray” user can subscribe to the topic “testtopic/#”
+    - The website <https://docs.emqx.com/en/emqx/latest/access-control/authz/file.html#configure-with-dashboard> is quite helpful for this step
+- Tested and verified that the latest version works as intended with the ACL rules
+  - Results recorded in tests 4.1-4.8
+- Summary of differences:
+  - Old version uses auth_usernames, while new version uses an authentication method
+    - Usernames and passwords will probably have to be manually transferred over from old to new version
+  - Old version uses an acl.conf file in the folder which is mounted via sources, while new version has acl.conf capabilities if the ACL file is copied into the dashboard
+    - Potential to also just use the same acl.conf file in the same manner as the old version
+      - Test unsuccessful, even with the same exact ACL file that is in the dashboard, using it as its own file in the directory and using source doesn’t work
+- The usernames and passwords stored in the old version cannot be easily ported to the newest version of EMQX
+  - A file with the list of usernames can be found but the passwords cannot be found
+  - Only other option is to manually enter each username by hand into the new version’s dashboard or code it in via REST API
+- Attempted to try and upgrade a container from 4.2.13 to the latest version of EMQX, the dashboard stays with the old login and will not allow any access
+  - Attempted to just stop containers first and then start again with the update, but did not work
+  - Tried to shut down just the updated container without shutting down the stack: Failure
+    - _docker compose rm emqx_v4_
+  - Tried to shut down the container and added in a flag for removing the volumes: Failure
+    - _docker compose rm -v emqx_v4_
+  - Shutting down the whole stack: Failure
+  - Commenting out the volumes section in the .yml file did not work either
+  - I believe that a version update of the same container will not work
+    - Probably have to make a second container that is the most recent version of EMQX and manually transfer over all the volumes, usernames, and ACL rules
+- Manually making a new container with the most recent version of EMQX as the image and then copying all the users and ACL rules functions correctly
+  - Unfortunately this is basically doing all the work again and there does not seem to be a way to upgrade the old version properly
