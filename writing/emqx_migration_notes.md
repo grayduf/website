@@ -1,3 +1,11 @@
+---
+title: Gray Dufilho
+layout: layout.njk
+---
+### EMQX Version Migration Notes
+**Grayson Dufilho** -- 6/16/2025
+/n
+
 - Attempted to install Docker on work laptop
   - Failed, do not have admin permissions on work laptop
   - Attempted install via command line, also failed; installed the installer, then had the same problem
